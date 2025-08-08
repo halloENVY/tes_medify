@@ -1,14 +1,9 @@
 <table id="table" class="table table-striped" style="width:100%">
     <thead>
         <tr>
-            <th>No</th>
+            <th>ID</th>
             <th>Kode</th>
             <th>Nama</th>
-            <th>Foto</th>
-            <th>Jenis</th>
-            <th>Harga Beli</th>
-            <th>Harga Jual</th>
-            <th>Supplier</th>
             <th>Aksi</th>
         </tr>
     </thead>

@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use DB;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
+use Exception;
 
 class RecreateDatabase extends Command
 {
@@ -19,7 +21,7 @@ class RecreateDatabase extends Command
      *
      * @var string
      */
-    protected $description = 'recreate medify_rekrutmen database';
+    protected $description = 'Recreate medify_rekrutmen database';
 
     /**
      * Create a new command instance.
@@ -34,11 +36,41 @@ class RecreateDatabase extends Command
     /**
      * Execute the console command.
      *
-     * @return mixed
+     * @return int
      */
     public function handle()
     {
-	DB::connection('hospital')->statement("DROP DATABASE IF EXISTS `medify_rekrutmen`");
-	DB::connection('hospital')->statement("CREATE DATABASE `medify_rekrutmen`");
+        try {
+            $this->info('Starting database recreation process...');
+
+            // Get database configuration
+            $connection = Config::get('database.connections.mysql');
+            $database = $connection['database'] ?? 'medify_rekrutmen';
+
+            // Confirm action
+            if (!$this->confirm("Are you sure you want to recreate the database '{$database}'? This will delete all existing data.")) {
+                $this->info('Operation cancelled.');
+                return 0;
+            }
+
+            $this->info("Dropping database '{$database}' if it exists...");
+            DB::statement("DROP DATABASE IF EXISTS `{$database}`");
+
+            $this->info("Creating database '{$database}'...");
+            DB::statement("CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+            $this->info("Database '{$database}' has been successfully recreated!");
+
+            // Run migrations if they exist
+            if ($this->confirm('Would you like to run migrations now?')) {
+                $this->call('migrate');
+            }
+
+            return 0;
+        } catch (Exception $e) {
+            $this->error('An error occurred while recreating the database:');
+            $this->error($e->getMessage());
+            return 1;
+        }
     }
 }

@@ -3,11 +3,6 @@
 <script src="https://cdn.datatables.net/1.12.1/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-    var start_date = '';
-    var end_date = '';
-    var data_per_fetch = 500;
-    var data_fetched = 0;
-
     $(document).ready(function() {
         $('#table').DataTable({
             searching: false,
@@ -26,63 +21,33 @@
         var dataTableObj = $('#table').DataTable();
         var filter_kode = $('#filter-kode').val()
         var filter_nama = $('#filter-nama').val()
-        var filter_harga_min = $('#filter-harga-min').val()
-        var filter_harga_max = $('#filter-harga-max').val()
-        
-        // Validate price range
-        if (filter_harga_min && filter_harga_max) {
-            if (parseFloat(filter_harga_min) > parseFloat(filter_harga_max)) {
-                alert('Harga minimum tidak boleh lebih besar dari harga maximum!');
-                $('#loading-filter').hide();
-                return;
-            }
-        }
         
         dataTableObj.clear().draw();
 
         $.ajax({
-            url: '{{url("master-items/search")}}',
+            url: '{{url("kategori/search")}}',
             dataType: 'json',
             tryCount: 0,
             retryLimit: 3,
-            data: 'kode=' + filter_kode + '&nama=' + filter_nama + '&hargamin=' + filter_harga_min + '&hargamax=' + filter_harga_max,
+            data: 'kode=' + filter_kode + '&nama=' + filter_nama,
             success: function(results) {
                 var data = results.data
 
                 $.each(data, function(index, item) {
                     array_temp = [];
-                    var harga_jual = item.harga_beli + item.harga_beli * item.laba / 100;
-                    harga_jual = Math.round(harga_jual)
-                    var kode = item.kode;
-
-                    var viewBtn = `<a href="{{url('master-items/view/')}}/` + kode + `" class="btn btn-primary btn-sm me-1" title="Lihat Detail"><i class="fas fa-eye"></i> View</a>`;
-                    var editBtn = `<a href="{{url('master-items/form/edit/')}}/` + item.id + `" class="btn btn-warning btn-sm me-1" title="Edit Item"><i class="fas fa-edit"></i> Edit</a>`;
-                    var deleteBtn = `<button type="button" class="btn btn-danger btn-sm" onclick="deleteMasterItem(` + item.id + `)" title="Hapus Item"><i class="fas fa-trash"></i> Delete</button>`;
                     
-                    var html = `<div class="btn-group" role="group">` + viewBtn + editBtn + deleteBtn + `</div>`;
+                    var viewBtn = `<a href="{{url('kategori/view/')}}/` + item.id + `" class="btn btn-primary btn-sm me-1" title="Lihat Detail"><i class="fas fa-eye"></i> View</a>`;
+                    var editBtn = `<a href="{{url('kategori/form/edit/')}}/` + item.id + `" class="btn btn-warning btn-sm me-1" title="Edit Kategori"><i class="fas fa-edit"></i> Edit</a>`;
+                    var deleteBtn = `<button type="button" class="btn btn-danger btn-sm" onclick="deleteKategori(` + item.id + `)" title="Hapus Kategori"><i class="fas fa-trash"></i> Delete</button>`;
+                    
+                    var actions = `<div class="btn-group" role="group">` + viewBtn + editBtn + deleteBtn + `</div>`;
 
-                    // Add data in the correct order to match table headers
-                    // Add sequential numbering
+                    // Use sequential numbering instead of database ID
                     var sequentialNumber = index + 1;
                     array_temp.push(sequentialNumber);
                     array_temp.push(item.kode);
                     array_temp.push(item.nama);
-                    
-                    // Add foto column
-                    var fotoDisplay = '';
-                    if (item.foto) {
-                        fotoDisplay = `<img src="{{asset('storage/')}}/${item.foto}" alt="${item.nama}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">`;
-                    } else {
-                        fotoDisplay = '<span class="text-muted">No Image</span>';
-                    }
-                    array_temp.push(fotoDisplay);
-                    
-                    array_temp.push(item.jenis);
-                    array_temp.push('Rp ' + new Intl.NumberFormat('id-ID').format(item.harga_beli));
-                    array_temp.push('Rp ' + new Intl.NumberFormat('id-ID').format(harga_jual));
-                    array_temp.push(item.supplier);
-                    array_temp.push(html);
-
+                    array_temp.push(actions);
 
                     dataTableObj.row.add(array_temp).draw(true);
                 });
@@ -102,9 +67,9 @@
         })
     }
 
-    function deleteMasterItem(id) {
-        if (confirm('Apakah Anda yakin ingin menghapus Master Item ini?')) {
-            console.log('Deleting item with ID:', id);
+    function deleteKategori(id) {
+        if (confirm('Apakah Anda yakin ingin menghapus kategori ini?')) {
+            console.log('Deleting kategori with ID:', id);
             
             // Get CSRF token
             var token = $('meta[name="csrf-token"]').attr('content');
@@ -116,7 +81,7 @@
             
             // Use AJAX for better error handling
             $.ajax({
-                url: '{{url("master-items/delete")}}/' + id,
+                url: '{{url("kategori/delete")}}/' + id,
                 type: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': token,
@@ -129,11 +94,11 @@
                 success: function(response) {
                     console.log('Delete successful:', response);
                     if (response.success) {
-                        alert(response.message || 'Master Item berhasil dihapus!');
+                        alert(response.message || 'Kategori berhasil dihapus!');
                         // Refresh the table
                         getData();
                     } else {
-                        alert(response.message || 'Gagal menghapus item');
+                        alert(response.message || 'Gagal menghapus kategori');
                     }
                 },
                 error: function(xhr, status, error) {
@@ -141,7 +106,7 @@
                     console.error('Status:', status);
                     console.error('Error:', error);
                     
-                    var errorMessage = 'Gagal menghapus item';
+                    var errorMessage = 'Gagal menghapus kategori';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     } else if (xhr.responseText) {
@@ -154,7 +119,7 @@
                     console.log('Trying fallback form submission...');
                     var form = document.createElement('form');
                     form.method = 'POST';
-                    form.action = '{{url("master-items/delete")}}/' + id;
+                    form.action = '{{url("kategori/delete")}}/' + id;
                     
                     var csrfInput = document.createElement('input');
                     csrfInput.type = 'hidden';
